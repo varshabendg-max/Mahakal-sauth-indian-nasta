@@ -1,0 +1,9 @@
+{
+  "name": "મહાકાલ નાસ્તા",
+  "short_name": "મહાકાલ",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0e0e10",
+  "theme_color": "#d90045",
+  "icons": []
+}

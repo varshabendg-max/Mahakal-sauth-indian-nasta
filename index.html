@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#d90045">
+<link rel="manifest" href="manifest.webmanifest">
+<title>મહાકાલ નાસ્તા</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0e0e10;color:#fff;font-family:Arial,sans-serif}
+header{position:sticky;top:0;z-index:10;padding:14px 16px;background:linear-gradient(135deg,#171717,#d90045);box-shadow:0 2px 12px #0008}
+h1{font-size:23px;margin:0}.sub{font-size:13px;color:#eee;margin-top:4px}.wrap{max-width:700px;margin:auto;padding:12px}
+.card{background:#19191c;border:1px solid #333;border-radius:18px;padding:14px;margin:12px 0}
+.menuimg{width:100%;border-radius:14px;max-height:360px;object-fit:cover}
+label{display:block;font-size:13px;color:#bbb;margin:8px 0 4px}
+input{width:100%;padding:13px;border-radius:12px;border:1px solid #444;background:#0f0f11;color:#fff;font-size:16px}
+.row{display:flex;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #333}.row:last-child{border-bottom:0}
+.info{flex:1}.name{font-size:18px;font-weight:700}.price{color:#ffd54f;font-weight:bold;margin-top:3px}.desc{font-size:12px;color:#aaa}
+.qty{display:flex;align-items:center;gap:8px}.qbtn{width:38px;height:38px;border:0;border-radius:11px;background:#ffd54f;font-size:22px;font-weight:bold}
+.total{display:flex;justify-content:space-between;font-size:22px;font-weight:800;color:#ffd54f;padding:8px 0}
+button.action{width:100%;padding:14px;border:0;border-radius:13px;font-size:17px;font-weight:800;margin-top:8px;background:#00c853;color:#fff}
+button.alt{background:#333;color:#fff}.hidden{display:none}.qr{width:min(100%,330px);display:block;margin:10px auto;border-radius:14px}
+.note{font-size:12px;color:#aaa;line-height:1.5}.order{padding:12px;border:1px solid #444;border-radius:12px;margin:8px 0;background:#121214}
+.ok{color:#00e676}.wait{color:#ffd54f}.danger{color:#ff6b6b}
+.nav{display:flex;gap:8px}.nav button{flex:1}
+</style>
+</head>
+<body>
+<header><h1>મહાકાલ નાસ્તા</h1><div class="sub">Order • UPI Payment • Quick Service</div></header>
+<div class="wrap" id="customer">
+  <div class="card">
+    <img class="menuimg" src="assets/menu.png" alt="Menu">
+  </div>
+  <div class="card">
+    <label>ગ્રાહકનું નામ</label><input id="name" placeholder="નામ">
+    <label>મોબાઇલ નંબર</label><input id="phone" inputmode="numeric" maxlength="10" placeholder="10 અંકનો નંબર">
+  </div>
+  <div class="card">
+    <div id="items"></div>
+    <div class="total"><span>કુલ</span><span>₹<b id="total">0</b></span></div>
+    <button class="action" onclick="pay()">UPI થી Payment</button>
+    <button class="action alt" onclick="qr()">QR Code થી Payment</button>
+  </div>
+  <div class="card hidden" id="qrcard">
+    <div style="text-align:center;font-weight:700">Kotak UPI QR</div>
+    <img class="qr" src="assets/qr.jpg" alt="UPI QR">
+    <div style="text-align:center">UPI ID: <b>8200455923@kotakbank</b></div>
+    <button class="action" onclick="markPaid()">Payment કરી દીધું</button>
+    <p class="note">આ button order નોંધે છે. Bank-side payment success automatic verify કરવા merchant payment gateway/webhook જરૂરી છે.</p>
+  </div>
+  <div class="card">
+    <button class="action alt" onclick="location.hash='admin'">Admin Orders</button>
+  </div>
+</div>
+
+<div class="wrap hidden" id="admin">
+  <div class="card">
+    <h2 style="margin-top:0">Admin Orders</h2>
+    <div class="nav"><button class="action alt" onclick="location.hash=''">Customer</button><button class="action alt" onclick="notify()">Notification Test</button></div>
+    <p class="note">આ browser/device પર સાચવાયેલા orders અહીં દેખાશે. 8200455923 પર real SMS/WhatsApp notification માટે backend + authorised notification provider જોડવો જરૂરી છે.</p>
+  </div>
+  <div id="orders"></div>
+</div>
+
+<script>
+const products=[
+ ['ઇડલી','સાંભાર + ચટણી',30],
+ ['મેદુ વડા','સાંભાર + ચટણી',30],
+ ['બ્રેડ પકોડા','ચટણી',30],
+ ['દાળ વડા','ચટણી',30]
+];
+let cart=products.map(()=>0);
+function render(){
+ document.getElementById('items').innerHTML=products.map((p,i)=>`
+ <div class="row"><div class="info"><div class="name">${p[0]}</div><div class="desc">${p[1]}</div><div class="price">₹${p[2]}</div></div>
+ <div class="qty"><button class="qbtn" onclick="chg(${i},-1)">−</button><b>${cart[i]}</b><button class="qbtn" onclick="chg(${i},1)">+</button></div></div>`).join('');
+ document.getElementById('total').textContent=total();
+}
+function chg(i,d){cart[i]=Math.max(0,cart[i]+d);render()}
+function total(){return cart.reduce((s,q,i)=>s+q*products[i][2],0)}
+function orderData(status){
+ let name=document.getElementById('name').value.trim(), phone=document.getElementById('phone').value.trim();
+ if(!name||!/^\d{10}$/.test(phone)||!total()){alert('નામ, 10 અંકનો મોબાઇલ અને item પસંદ કરો.');return null}
+ let o={id:'MK'+Date.now().toString().slice(-8),name,phone,items:products.map((p,i)=>({name:p[0],qty:cart[i]})).filter(x=>x.qty),amount:total(),status,time:new Date().toLocaleString('gu-IN')};
+ let all=JSON.parse(localStorage.getItem('mahakal_orders')||'[]');all.unshift(o);localStorage.setItem('mahakal_orders',JSON.stringify(all));return o
+}
+function pay(){
+ let o=orderData('pending'); if(!o)return;
+ let url='upi://pay?pa=8200455923@kotakbank&pn=GORECHA%20KAUSHAL&am='+o.amount+'&cu=INR&tn=Mahakal-'+o.id;
+ location.href=url;
+}
+function qr(){document.getElementById('qrcard').classList.remove('hidden')}
+function markPaid(){let o=orderData('customer_marked_paid');if(o){alert('Order '+o.id+' નોંધાઈ ગયો. Payment bank/appમાં verify કરજો.');showAdmin()}}
+function showAdmin(){location.hash='admin'}
+function notify(){if('Notification' in window){Notification.requestPermission().then(p=>alert('Browser notification permission: '+p))}else alert('આ browser notification support કરતું નથી.')}
+function renderAdmin(){
+ let all=JSON.parse(localStorage.getItem('mahakal_orders')||'[]');
+ document.getElementById('orders').innerHTML=all.length?all.map(o=>`<div class="order"><b>${o.id}</b> • ${o.time}<br>${o.name} • ${o.phone}<br>${o.items.map(x=>x.name+' × '+x.qty).join(', ')}<br><b>₹${o.amount}</b> • <span class="${o.status==='pending'?'wait':'ok'}">${o.status}</span></div>`).join(''):'<div class="card">હજુ કોઈ order નથી.</div>'
+}
+function route(){let a=location.hash==='#admin';document.getElementById('customer').classList.toggle('hidden',a);document.getElementById('admin').classList.toggle('hidden',!a);if(a)renderAdmin()}
+window.addEventListener('hashchange',route);render();route();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
